@@ -25,13 +25,21 @@ init 4 python in _fom_whiteboard:
             - surface: pygame surface to apply brush to
             - mouse_from: (x, y) tuple of previous mouse position
             - mouse_to: (x, y) tuple of current mouse position
-            - buttons_held: (left, right, middle) tuple of boolean mouse
+            - buttons_held: (left, middle, right) tuple of boolean mouse
                 button states (True if held, False otherwise)
+            """
+
+        def outline(self, surface, mouse_xy):
+            """
+            Applies outline of the next stroke to the surface.
+            Parameters:
+            - surface: pygame surface to apply brush outline to
+            - mouse_xy: (x, y) tuple of current mouse position
             """
 
         def cursor(self):
             """
-            Defines _hardware_ mouse (see RenPy docs) representing this brush.
+            Defines hardware mouse (see RenPy docs) representing this brush.
             Returns (path, x, y) cursor parameters or None.
             If None, default mouse cursor is used.
             """
@@ -46,7 +54,7 @@ init 4 python in _fom_whiteboard:
             self.color = color
 
         def apply(self, surface, m_from, m_to, buttons_held):
-            left_held, rh, mh = buttons_held
+            left_held, mh, rh = buttons_held
             if not left_held:
                 # Only draw with left mouse
                 return
@@ -55,10 +63,18 @@ init 4 python in _fom_whiteboard:
                 pygame.draw.line(surface, self.color, m_from, m_to, self.size)
             else:
                 x, y = m_from
+                x -= self.size // 2 - 1
+                y -= self.size // 2 - 1
                 pygame.draw.rect(surface, self.color, (x, y, self.size, self.size))
 
+        def outline(self, surface, mouse_xy):
+            x, y = mouse_xy
+            x -= self.size // 2 - 1
+            y -= self.size // 2 - 1
+            pygame.draw.rect(surface, self.color, (x, y, self.size, self.size), 1)
+
         def cursor(self):
-            return _assets_dir + "/cur_marker.png", 0, 39
+            return _assets_dir + "/cur_marker.png", -2, 39
 
     class Whiteboard(renpy.Displayable):
         """Bare canvas displayable with customizable brush and background,
@@ -76,58 +92,92 @@ init 4 python in _fom_whiteboard:
             self._canvas = None
             self._dim = None
 
-            # Mouse pos & pressed state
-            self._m_pressed = False
+            # Mouse position, hover and press state
+            self._m_pressed = None
+            self._m_hover = None
             self._m_last_xy = None
             self._m_this_xy = None
+
             # Mouse custom cursor initial state to restore
-            self._m_og_cur = dict(store.config.mouse)
+            self._m_og_cur = store.config.mouse.get("default", None)
+            # Whether to capture all mouse events or not
+            self._m_cap_all = False
 
         def render(self, width, height, st, at):
             self._dim = (width, height)
+
+            # Prepare renderer and canvas surface
+            r = renpy.Render(width, height)
+            surf = r.canvas().get_surface()
 
             # Initialize and reset canvas surface to white
             if self._canvas is None:
                 self._canvas = pygame.Surface((width, height))
                 self.wipe()
 
-            # Apply (and interpolate) brush while mouse button is held
-            if self._m_pressed and self._m_last_xy and self._m_this_xy:
-                self.brush.apply(self._canvas, self._m_last_xy, self._m_this_xy, (True, False, False))
-                self._m_last_xy = self._m_this_xy
+            # Apply (and interpolate) brush while any mouse button is held
+            if self._m_pressed is not None and any(self._m_pressed):
+                if self._m_last_xy and self._m_this_xy:
+                    m_buttons = tuple(self._m_pressed)
+                    self.brush.apply(self._canvas, self._m_last_xy, self._m_this_xy, m_buttons)
+                    self._m_last_xy = self._m_this_xy
 
-            # Blit render updated surface, request redrawing immediately
-            r = renpy.Render(width, height)
-            r.canvas().get_surface().blit(self._canvas, (0, 0))
+            # Blit updated canvas surface
+            surf.blit(self._canvas, (0, 0))
+
+            # Draw brush outline at cursor
+            if self._m_this_xy:
+                self.brush.outline(surf, self._m_this_xy)
+
+            # Redraw next frame immediately
             renpy.redraw(self, 0)
-
             return r
 
         def event(self, ev, x, y, st):
             if ev.type == pygame.MOUSEBUTTONDOWN:
-                # Set mouse pressed state if left mouse button is held and
-                # set initial mouse position
-                if not self._m_pressed and ev.button == 1:
-                    self._m_pressed = True
+                # Update pressed buttons tuple
+                initial_unset = self._m_pressed is None or not any(self._m_pressed)
+                if self._m_pressed is None:
+                    self._m_pressed = [False for _ in range(1, 4)]
+                self._m_pressed[ev.button - 1] = True
+
+                # Set initial position if none were held before this event was fired
+                if initial_unset:
                     self._m_this_xy = (x, y)
                     self._m_last_xy = (x, y)
 
+                if self._m_hover and self._m_cap_all:
+                    # Prevent passing event to keymap
+                    raise renpy.IgnoreEvent
+
             elif ev.type == pygame.MOUSEBUTTONUP:
-                # When left button is released reset pressed state
-                if self._m_pressed and ev.button == 1:
-                    self._m_pressed = False
+                # Update pressed buttons tuple
+                if self._m_pressed is not None:
+                    self._m_pressed[ev.button - 1] = False
+
+                # When no mouse buttons are held, reset mouse state and positions
+                if not any(self._m_pressed):
+                    self._m_pressed = None
+                    self._m_this_xy = None
+                    self._m_last_xy = None
+
+                if self._m_hover and self._m_cap_all:
+                    # Prevent passing event to keymap
+                    raise renpy.IgnoreEvent
 
             elif ev.type == pygame.MOUSEMOTION:
-                # Use custom brush cursor (if available) when hovering over
-                # canvas surface only
+                # Update mouse position while moving event when no mouse button is held
+                self._m_this_xy = (x, y)
+
                 if self._dim is not None:
                     w, h = self._dim
-                    is_at_canvas = x >= 0 and y >= 0 and x < w and y < h
-                    self._enable_custom_cursor(enable=is_at_canvas)
+                    self._m_hover = x >= 0 and y >= 0 and x < w and y < h
 
-                # Update mouse position while moving with mouse button held
-                if self._m_pressed:
-                    self._m_this_xy = (x, y)
+                    # Use custom brush cursor (if available) when hovering over
+                    # canvas surface only
+                    self._enable_custom_cursor(enable=self._m_hover)
+                    # Lock mouse buttons only when hovering over canvas
+                    self._lock_mbuttons(lock=self._m_hover)
 
         def wipe(self):
             """Reset canvas to currently set background color fill."""
@@ -136,7 +186,7 @@ init 4 python in _fom_whiteboard:
         def to_bytes(self):
             """Saves canvas pixel data as PNG+zlib into byte array."""
             buffer = io.BytesIO()
-            pygame.image.save(self._surface, buffer, "png")
+            pygame.image.save(self._canvas, buffer, "png")
             compressed = zlib.compress(buffer.getvalue(), 4)
             return compressed
 
@@ -144,28 +194,39 @@ init 4 python in _fom_whiteboard:
             """Loads canvas pixel data from PNG+zlib from byte array."""
             decompressed = zlib.decompress(data)
             buffer = io.BytesIO(decompressed)
-            self._surface = pygame.image.load(buffer, "png")
+            self._canvas = pygame.image.load(buffer, "png")
 
         def dispose(self):
             """Runs on-destroy logic when canvas is no longer used.
                NOTE: must be called externally, RenPy does not call this."""
             # Restore original cursor
             self._enable_custom_cursor(enable=False)
+            # Unlock mouse buttons
+            self._lock_mbuttons(lock=False)
+
+
+        # Private methods
 
         def _enable_custom_cursor(self, enable):
             """Enables or disables custom brush cursor (globally, hover check
                is caller's responsibility) if available. No-op if enable=False
                or if custom cursor is unavailable."""
 
-            if enable:
-                new_cur = self.brush.cursor()
-                if new_cur is not None:
-                    # Use custom brush cursor if available
-                    store.config.mouse["default"] = [new_cur]
-                    return
-
+            prev_value = store.config.mouse.get("default", None)
             # If no custom cursor or it is disabled, restore original
-            store.config.mouse = dict(self._m_og_cur)
+            new_value = (enable and [self.brush.cursor()]) or self._m_og_cur
+
+            # Only update mouse if value changes
+            has_changed = new_value != prev_value
+            if has_changed:
+                store.config.mouse["default"] = new_value
+                if new_value is None:
+                    del store.config.mouse["default"]
+
+        def _lock_mbuttons(self, lock):
+            """Locks all mouse buttons (mouse2/mouse3) and captures
+               all mouse events instead of passing it to MAS and hiding all screens."""
+            self._m_cap_all = lock
 
 
 # Displayable styles (copypaste from MAS mainly)
@@ -236,6 +297,6 @@ screen fom_whiteboard_palette_button(canvas, color):
             if color != (0, 0, 0, 255):
                 background Color(color).shade(0.75)
             else:
-                background Color(color).tint(0.9)
+                background Color(color).tint(0.75)
         else:
             background Color(color)
