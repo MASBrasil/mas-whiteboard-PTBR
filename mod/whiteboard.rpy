@@ -60,21 +60,23 @@ init 4 python in _fom_whiteboard:
                 return
 
             if m_from != m_to:
+                # NOTE: This needs no adjustment!
+                # m_from = self._adjust_xy(m_from)
+                # m_to = self._adjust_xy(m_to)
                 pygame.draw.line(surface, self.color, m_from, m_to, self.size)
             else:
-                x, y = m_from
-                x -= self.size // 2 - 1
-                y -= self.size // 2 - 1
+                x, y = self._adjust_xy(m_from)
                 pygame.draw.rect(surface, self.color, (x, y, self.size, self.size))
 
         def outline(self, surface, mouse_xy):
-            x, y = mouse_xy
-            x -= self.size // 2 - 1
-            y -= self.size // 2 - 1
+            x, y = self._adjust_xy(mouse_xy)
             pygame.draw.rect(surface, self.color, (x, y, self.size, self.size), 1)
 
         def cursor(self):
-            return _assets_dir + "/cur_marker.png", -2, 39
+            return _assets_dir + "/cur_marker.png", -1, 40
+
+        def _adjust_xy(self, xy, add=(0, 0)):
+            return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
 
     class Whiteboard(renpy.Displayable):
         """Bare canvas displayable with customizable brush and background,
