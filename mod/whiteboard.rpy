@@ -11,6 +11,10 @@ init 4 python in _fom_whiteboard:
     _script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard", relative=True)
     _assets_dir = _script_dir + "/assets"
 
+    def _pygame_imload(impath):
+        full_path = store.config.gamedir + "/" + _assets_dir + "/" + impath
+        return pygame.image.load(full_path)
+
     # MAS apparently has it None by default
     if store.config.mouse is None:
         store.config.mouse = {}
@@ -86,11 +90,16 @@ init 4 python in _fom_whiteboard:
         def __init__(self, **kwargs):
             renpy.Displayable.__init__(self, **kwargs)
 
+            # Preload assets
+            self.im_ui_whiteboard = _pygame_imload("ui_whiteboard_frame.png").convert_alpha()
+
             # Current brush and background
             self.brush = Pencil()
             self.background = (255, 255, 255, 255)
 
             # Canvas surface and displayable dimensions (available at first render)
+            self._canvas_dim = (720, 480)
+            self._canvas_offset = (15, 18) # because of the frame
             self._canvas = None
             self._dim = None
 
@@ -114,22 +123,28 @@ init 4 python in _fom_whiteboard:
 
             # Initialize and reset canvas surface to white
             if self._canvas is None:
-                self._canvas = pygame.Surface((width, height))
+                self._canvas = pygame.Surface(self._canvas_dim)
                 self.wipe()
 
             # Apply (and interpolate) brush while any mouse button is held
             if self._m_pressed is not None and any(self._m_pressed):
                 if self._m_last_xy and self._m_this_xy:
                     m_buttons = tuple(self._m_pressed)
-                    self.brush.apply(self._canvas, self._m_last_xy, self._m_this_xy, m_buttons)
+                    off_x, off_y = self._canvas_offset
+                    last_xy = (self._m_last_xy[0] - off_x, self._m_last_xy[1] - off_y)
+                    this_xy = (self._m_this_xy[0] - off_x, self._m_this_xy[1] - off_y)
+                    self.brush.apply(self._canvas, last_xy, this_xy, m_buttons)
                     self._m_last_xy = self._m_this_xy
 
             # Blit updated canvas surface
-            surf.blit(self._canvas, (0, 0))
+            surf.blit(self._canvas, self._canvas_offset)
 
             # Draw brush outline at cursor
             if self._m_this_xy:
                 self.brush.outline(surf, self._m_this_xy)
+
+            # Draw frame
+            surf.blit(self.im_ui_whiteboard, (0, 0))
 
             # Redraw next frame immediately
             renpy.redraw(self, 0)
@@ -258,10 +273,10 @@ screen fom_whiteboard_screen(canvas):
         align (0.5, 0.5)
         spacing 10
 
-        frame:
+        hbox:
             xalign 0.5
-            xsize 800
-            ysize 600
+            xsize 750
+            ysize 512
             add canvas
 
         hbox:
