@@ -73,7 +73,7 @@ init 4 python in _fom_whiteboard:
             pygame.draw.rect(surface, self.color, (x, y, self.size, self.size), 1)
 
         def cursor(self):
-            return _assets_dir + "/cur_marker.png", -1, 40
+            return _assets_dir + "/cur_marker.png", -1, 42 # Offset by -1x 42y
 
         def _adjust_xy(self, xy, add=(0, 0)):
             return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
