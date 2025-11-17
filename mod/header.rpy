@@ -1,12 +1,11 @@
 # This file is part of Whiteboard submod by Friends of Monika.
 # Report issues and ask questions at https://github.com/friends-of-monika/mas-whiteboard/issues
 
-
 init -990 python:
     store.mas_submod_utils.Submod(
         author="Friends of Monika",
         name="Whiteboard",
-        description=_("This is a template submod for other people to reuse."),
+        description=_("Adds a (virtual) whiteboard for you and your [m_name] to draw on!~"),
         version="1.0.0"
     )
 
