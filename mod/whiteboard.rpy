@@ -157,11 +157,11 @@ init 4 python in _fom_whiteboard:
                 if self._m_pressed is not None:
                     self._m_pressed[ev.button - 1] = False
 
-                # When no mouse buttons are held, reset mouse state and positions
-                if not any(self._m_pressed):
-                    self._m_pressed = None
-                    self._m_this_xy = None
-                    self._m_last_xy = None
+                    # When no mouse buttons are held, reset mouse state and positions
+                    if not any(self._m_pressed):
+                        self._m_pressed = None
+                        self._m_this_xy = None
+                        self._m_last_xy = None
 
                 if self._m_hover and self._m_cap_all:
                     # Prevent passing event to keymap
