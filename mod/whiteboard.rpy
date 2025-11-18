@@ -11,6 +11,9 @@ init 4 python in _fom_whiteboard:
     _script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard", relative=True)
     _assets_dir = _script_dir + "/assets"
 
+    IM_UI_WHITEBOARD = "ui_whiteboard_frame.png"
+    IM_ROOM_WHITEBOARD = "room_whiteboard.png"
+
     def _pygame_imload(impath):
         full_path = store.config.gamedir + "/" + _assets_dir + "/" + impath
         return pygame.image.load(full_path)
@@ -91,7 +94,7 @@ init 4 python in _fom_whiteboard:
             renpy.Displayable.__init__(self, **kwargs)
 
             # Preload assets
-            self.im_ui_whiteboard = _pygame_imload("ui_whiteboard_frame.png").convert_alpha()
+            self.im_ui_whiteboard = _pygame_imload(IM_UI_WHITEBOARD).convert_alpha()
 
             # Current brush and background
             self.brush = Pencil()
