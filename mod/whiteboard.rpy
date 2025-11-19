@@ -12,7 +12,10 @@ init 4 python in _fom_whiteboard:
     _assets_dir = _script_dir + "/assets"
 
     IM_UI_WHITEBOARD = "ui_whiteboard_frame.png"
-    IM_ROOM_WHITEBOARD = "room_whiteboard.png"
+
+    IM_ICON_MARKER = _assets_dir + "/icon_tool_marker.png"
+    IM_ICON_WIPE = _assets_dir + "/icon_tool_wipe.png"
+    IM_CUR_NONE = _assets_dir + "/cur_none.png"
 
     def _pygame_imload(impath):
         full_path = store.config.gamedir + "/" + _assets_dir + "/" + impath
@@ -50,15 +53,40 @@ init 4 python in _fom_whiteboard:
             Returns (path, x, y) cursor parameters or None.
             If None, default mouse cursor is used.
             """
+            return IM_CUR_NONE, 0, 0
 
-    class Pencil(Brush):
-        """Simple brush that draws rectangles of given size and color under
-           the cursor and uses lines for interpolated strokes."""
+        def increment_size(self):
+            """
+            Defines optional logic for brush size incrementing (mouse wheel up.)
+            """
+
+        def decrement_size(self):
+            """
+            Defines optional logic for brush size decrementing (mouse wheel down.)
+            """
+
+    class _PencilBase(Brush):
+        """
+        Leftovers from original (less-than-ideal) Pencil implementation.
+        Should be cleaned up later. For internal use.
+        """
 
         def __init__(self, size=4, color=(0, 0, 0, 255)):
-            super(Pencil, self).__init__(self)
+            super(_PencilBase, self).__init__(self)
             self.size = size
             self.color = color
+
+        def _adjust_xy(self, xy, add=(0, 0)):
+            return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
+
+    class Pencil(_PencilBase):
+        """Simple brush that draws circles of given size and color under
+           the cursor and uses lines for interpolated strokes."""
+
+        def __init__(self, size=4, min_size=2, max_size=32, color=(0, 0, 0, 255)):
+            super(Pencil, self).__init__(size, color)
+            self.min_size = min_size
+            self.max_size = max_size
 
         def apply(self, surface, m_from, m_to, buttons_held):
             left_held, mh, rh = buttons_held
@@ -67,23 +95,27 @@ init 4 python in _fom_whiteboard:
                 return
 
             if m_from != m_to:
-                # NOTE: This needs no adjustment!
-                # m_from = self._adjust_xy(m_from)
-                # m_to = self._adjust_xy(m_to)
-                pygame.draw.line(surface, self.color, m_from, m_to, self.size)
-            else:
-                x, y = self._adjust_xy(m_from)
-                pygame.draw.rect(surface, self.color, (x, y, self.size, self.size))
+                m_from_l = self._adjust_xy(m_from)
+                m_to_l = self._adjust_xy(m_to)
+                pygame.draw.line(surface, self.color, m_from_l, m_to_l, self.size)
+
+            x, y = self._adjust_xy(m_from)
+            pygame.draw.circle(surface, self.color, (x, y), self.size // 2)
 
         def outline(self, surface, mouse_xy):
             x, y = self._adjust_xy(mouse_xy)
-            pygame.draw.rect(surface, self.color, (x, y, self.size, self.size), 1)
+            pygame.draw.circle(surface, (0, 0, 0, 255), (x, y), self.size // 2, 1)
 
-        def cursor(self):
-            return _assets_dir + "/cur_marker.png", -1, 42 # Offset by -1x 42y
+        def increment_size(self):
+            self.size = min(self.size + 1, self.max_size)
 
-        def _adjust_xy(self, xy, add=(0, 0)):
-            return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
+        def decrement_size(self):
+            self.size = max(self.size - 1, self.min_size)
+
+    class Wipe(Pencil):
+        """Pencil, but with customized defaults."""
+        def __init__(self, size=8, min_size=4, max_size=32, color=(255, 255, 255, 255)):
+            super(Wipe, self).__init__(size, min_size, max_size, color)
 
     class Whiteboard(renpy.Displayable):
         """Bare canvas displayable with customizable brush and background,
@@ -142,8 +174,8 @@ init 4 python in _fom_whiteboard:
             # Blit updated canvas surface
             surf.blit(self._canvas, self._canvas_offset)
 
-            # Draw brush outline at cursor
-            if self._m_this_xy:
+            # Draw brush outline at cursor (when over canvas)
+            if self._m_this_xy and self._is_cur_over_canvas(self._m_this_xy):
                 self.brush.outline(surf, self._m_this_xy)
 
             # Draw frame
@@ -159,7 +191,13 @@ init 4 python in _fom_whiteboard:
                 initial_unset = self._m_pressed is None or not any(self._m_pressed)
                 if self._m_pressed is None:
                     self._m_pressed = [False for _ in range(1, 4)]
-                self._m_pressed[ev.button - 1] = True
+                if ev.button < 4:
+                    self._m_pressed[ev.button - 1] = True
+
+                if ev.button == 4:
+                    self.brush.increment_size()
+                elif ev.button == 5:
+                    self.brush.decrement_size()
 
                 # Set initial position if none were held before this event was fired
                 if initial_unset:
@@ -172,7 +210,7 @@ init 4 python in _fom_whiteboard:
 
             elif ev.type == pygame.MOUSEBUTTONUP:
                 # Update pressed buttons tuple
-                if self._m_pressed is not None:
+                if self._m_pressed is not None and ev.button < 4:
                     self._m_pressed[ev.button - 1] = False
 
                     # When no mouse buttons are held, reset mouse state and positions
@@ -191,7 +229,8 @@ init 4 python in _fom_whiteboard:
 
                 if self._dim is not None:
                     w, h = self._dim
-                    self._m_hover = x >= 0 and y >= 0 and x < w and y < h
+                    off_x, off_y = self._canvas_offset
+                    self._m_hover = self._is_cur_over_canvas((x, y))
 
                     # Use custom brush cursor (if available) when hovering over
                     # canvas surface only
@@ -248,6 +287,15 @@ init 4 python in _fom_whiteboard:
                all mouse events instead of passing it to MAS and hiding all screens."""
             self._m_cap_all = lock
 
+        def _is_cur_over_canvas(self, cur_xy):
+            """Checks whether given cursor (x,y) is over the canvas area
+               (without frame; used to prevent rendering pen/outline over transparent corners.)"""
+            off_x, off_y = self._canvas_offset
+            w, h = self._dim
+            x, y = cur_xy
+            return ((x >= off_x and y >= off_y) and
+                    (x < w - off_x and y < h - off_y))
+
 
 # Displayable styles (copypaste from MAS mainly)
 
@@ -270,7 +318,10 @@ style fom_whiteboard_button_text_dark is generic_button_text_dark:
 
 # Screen and displayables
 
-screen fom_whiteboard_screen(canvas):
+image fom_ui_icon_tool_marker = _fom_whiteboard.IM_ICON_MARKER
+image fom_ui_icon_tool_wipe = _fom_whiteboard.IM_ICON_WIPE
+
+screen fom_whiteboard_screen(whiteboard):
     vbox:
         style_prefix "fom_whiteboard"
         align (0.5, 0.5)
@@ -280,7 +331,7 @@ screen fom_whiteboard_screen(canvas):
             xalign 0.5
             xsize 750
             ysize 512
-            add canvas
+            add whiteboard
 
         hbox:
             xsize 800
@@ -288,31 +339,36 @@ screen fom_whiteboard_screen(canvas):
             grid 4 2:
                 spacing 10
 
-                use fom_whiteboard_palette_button(canvas, (255, 0, 0, 255)) # Red
-                use fom_whiteboard_palette_button(canvas, (0, 255, 0, 255)) # Green
-                use fom_whiteboard_palette_button(canvas, (0, 0, 255, 255)) # Blue
+                use fom_whiteboard_palette_button(whiteboard, (255, 0, 0, 255)) # Red
+                use fom_whiteboard_palette_button(whiteboard, (0, 255, 0, 255)) # Green
+                use fom_whiteboard_palette_button(whiteboard, (0, 0, 255, 255)) # Blue
 
-                use fom_whiteboard_palette_button(canvas, (255, 255, 0, 255)) # Yellow
-                use fom_whiteboard_palette_button(canvas, (0, 255, 255, 255)) # Cyan
-                use fom_whiteboard_palette_button(canvas, (255, 0, 255, 255)) # Magenta
+                use fom_whiteboard_palette_button(whiteboard, (255, 255, 0, 255)) # Yellow
+                use fom_whiteboard_palette_button(whiteboard, (0, 255, 255, 255)) # Cyan
+                use fom_whiteboard_palette_button(whiteboard, (255, 0, 255, 255)) # Magenta
 
-                use fom_whiteboard_palette_button(canvas, (0, 0, 0, 255)) # Black
+                use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255)) # Black
                 null # Need it for grid
+
+            grid 2 1:
+                spacing 10
+                textbutton _("{image=fom_ui_icon_tool_marker}") xysize (40, 40) action SetField(whiteboard, "brush", _fom_whiteboard.Pencil())
+                textbutton _("{image=fom_ui_icon_tool_wipe}") xysize (40, 40) action SetField(whiteboard, "brush", _fom_whiteboard.Wipe())
 
             vbox:
                 spacing 10
                 xalign 1.0
 
-                textbutton _("Wipe") action Function(canvas.wipe)
+                textbutton _("Wipe") action Function(whiteboard.wipe)
                 textbutton _("Close") action Return()
 
 
-screen fom_whiteboard_palette_button(canvas, color):
-    button action SetField(canvas.brush, "color", color):
+screen fom_whiteboard_palette_button(whiteboard, color):
+    button action SetField(whiteboard.brush, "color", color):
         xsize 40
         ysize 40
 
-        if canvas.brush.color == color:
+        if whiteboard.brush.color == color:
             # Use a slightly darker (ligher for black) color for selected color
             if color != (0, 0, 0, 255):
                 background Color(color).shade(0.75)
