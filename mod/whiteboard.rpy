@@ -28,9 +28,21 @@ init 4 python in _fom_whiteboard:
     class Brush(object):
         """Abstract brush tool for making changes to canvas."""
 
+        def hover(self, mouse_from, mouse_to):
+            """
+            Invoked on every mouse movement when no mouse buttons are held
+            (but never otherwise, mutually exclusive with Brush#apply())
+
+            Parameters:
+            - mouse_from: (x, y) tuple of previous mouse position
+            - mouse_to: (x, y) tuple of current mouse position
+            """
+
         def apply(self, surface, mouse_from, mouse_to, buttons_held):
             """
-            Applies this brush to surface.
+            Invoked on every mouse movement when at least one mouse button is held
+            (but never otherwise, mutually exclusive with Brush#hover())
+
             Parameters:
             - surface: pygame surface to apply brush to
             - mouse_from: (x, y) tuple of previous mouse position
@@ -79,7 +91,7 @@ init 4 python in _fom_whiteboard:
         def apply(self, surface, m_from, m_to, buttons_held):
             left_held, mh, rh = buttons_held
             if not left_held:
-                # Only draw with left mouse
+                # Only draw with left mouse button
                 return
 
             if m_from != m_to:
@@ -87,12 +99,11 @@ init 4 python in _fom_whiteboard:
                 m_to_l = self._adjust_xy(m_to)
                 pygame.draw.line(surface, self.color, m_from_l, m_to_l, self.size)
 
-            x, y = self._adjust_xy(m_to)
-            pygame.draw.circle(surface, self.color, (x, y), self.size // 2)
+            pygame.draw.circle(surface, self.color, self._adjust_xy(m_from), self.size // 2)
+            pygame.draw.circle(surface, self.color, self._adjust_xy(m_to), self.size // 2)
 
         def outline(self, surface, mouse_xy):
-            x, y = self._adjust_xy(mouse_xy)
-            pygame.draw.circle(surface, (0, 0, 0, 255), (x, y), self.size // 2, 1)
+            pygame.draw.circle(surface, (0, 0, 0, 255), self._adjust_xy(mouse_xy), self.size // 2, 1)
 
         def increment_size(self):
             self.size = min(self.size + 1, self.max_size)
@@ -153,14 +164,19 @@ init 4 python in _fom_whiteboard:
                 self.wipe()
 
             # Apply (and interpolate) brush while any mouse button is held
-            if self._m_pressed is not None and any(self._m_pressed):
-                if self._m_last_xy and self._m_this_xy:
-                    m_buttons = tuple(self._m_pressed)
-                    off_x, off_y = self._canvas_offset
-                    last_xy = (self._m_last_xy[0] - off_x, self._m_last_xy[1] - off_y)
-                    this_xy = (self._m_this_xy[0] - off_x, self._m_this_xy[1] - off_y)
-                    self.brush.apply(self._canvas, last_xy, this_xy, m_buttons)
-                    self._m_last_xy = self._m_this_xy
+            if self._m_last_xy and self._m_this_xy:
+                off_x, off_y = self._canvas_offset
+                last_xy = (self._m_last_xy[0] - off_x, self._m_last_xy[1] - off_y)
+                this_xy = (self._m_this_xy[0] - off_x, self._m_this_xy[1] - off_y)
+
+                if self._m_pressed is not None:
+                    if any(self._m_pressed):
+                        m_buttons = tuple(self._m_pressed)
+                        self.brush.apply(self._canvas, last_xy, this_xy, m_buttons)
+                    else:
+                        self.brush.hover(last_xy, this_xy)
+
+                self._m_last_xy = self._m_this_xy
 
             # Blit updated canvas surface
             surf.blit(self._canvas, self._canvas_offset)
@@ -369,17 +385,16 @@ screen fom_whiteboard_palette_button(whiteboard, color, locked=False):
             background Color(color)
 
 screen fom_whiteboard_toolbox(whiteboard):
-    python:
-        brush_marker = _fom_whiteboard.Pencil()
-        brush_wipe = _fom_whiteboard.Wipe()
+    default brush_pencil = _fom_whiteboard.Pencil()
+    default brush_wipe = _fom_whiteboard.Wipe()
 
-    grid 1 2:
+    grid 2 1:
         spacing 10
-        use fom_whiteboard_tool_button(whiteboard, brush_marker, _fom_whiteboard.IM_ICON_MARKER)
+        use fom_whiteboard_tool_button(whiteboard, brush_pencil, _fom_whiteboard.IM_ICON_MARKER)
         use fom_whiteboard_tool_button(whiteboard, brush_wipe, _fom_whiteboard.IM_ICON_WIPE)
 
 screen fom_whiteboard_tool_button(whiteboard, tool, icon_path):
     textbutton "{{image={0}}}".format(icon_path):
-        #sensitive whiteboard.brush != tool # No idea why, but this doesn't work :/
+        sensitive whiteboard.brush != tool
         action SetField(whiteboard, "brush", tool)
         xysize (40, 40)
