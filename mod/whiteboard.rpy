@@ -7,19 +7,20 @@ init 4 python in _fom_whiteboard:
     import store
     import zlib
     import io
+    import os
 
-    _script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard", relative=True)
-    _assets_dir = _script_dir + "/assets"
+    script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard", relative=True)
+    assets_dir = script_dir + "/assets"
 
-    IM_UI_WHITEBOARD = "ui_whiteboard_frame.png"
+    IM_UI_WHITEBOARD = os.path.join(store.config.gamedir, assets_dir, "ui_whiteboard_frame.png")
 
-    IM_ICON_MARKER = _assets_dir + "/icon_tool_marker.png"
-    IM_ICON_WIPE = _assets_dir + "/icon_tool_wipe.png"
-    IM_CUR_NONE = _assets_dir + "/cur_none.png"
+    IM_CANVAS_SAVED_DIR = store.config.renpy_base
+    IM_CANVAS_SAVED_NAME_FORMAT = "whiteboard{0:04}.png"
 
-    def _pygame_imload(impath):
-        full_path = store.config.gamedir + "/" + _assets_dir + "/" + impath
-        return pygame.image.load(full_path)
+    # NOTE: do not use 'os.path' here, RenPy hates Windows backslashes
+    IM_ICON_MARKER = assets_dir + "/icon_tool_marker.png"
+    IM_ICON_WIPE = assets_dir + "/icon_tool_wipe.png"
+    IM_CUR_NONE = assets_dir + "/cur_none.png"
 
     # MAS apparently has it None by default
     if store.config.mouse is None:
@@ -128,7 +129,7 @@ init 4 python in _fom_whiteboard:
             renpy.Displayable.__init__(self, **kwargs)
 
             # Preload assets
-            self.im_ui_whiteboard = _pygame_imload(IM_UI_WHITEBOARD).convert_alpha()
+            self.im_ui_whiteboard = pygame.image.load(IM_UI_WHITEBOARD).convert_alpha()
 
             # Current brush and background
             self.brush = Pencil()
@@ -249,22 +250,35 @@ init 4 python in _fom_whiteboard:
             """Reset canvas to currently set background color fill."""
             self._canvas.fill(self.background)
 
-        def to_bytes(self):
-            """Saves canvas pixel data as PNG+zlib into byte array."""
-            buffer = io.BytesIO()
-            pygame.image.save(self._canvas, buffer, "png")
-            compressed = zlib.compress(buffer.getvalue(), 4)
-            return compressed
+        def save_as_png(self):
+            """
+            Saves canvas pixel data as PNG at the saved pictures folder.
+            Attempts to store the filename with least available number suffix
+            starting with 1.
+            """
 
-        def from_bytes(self, data):
-            """Loads canvas pixel data from PNG+zlib from byte array."""
-            decompressed = zlib.decompress(data)
-            buffer = io.BytesIO(decompressed)
-            self._canvas = pygame.image.load(buffer, "png")
+            filenum = 1
+            while True:
+                filename = IM_CANVAS_SAVED_NAME_FORMAT.format(filenum)
+                filepath = os.path.join(IM_CANVAS_SAVED_DIR, filename)
+                if os.path.exists(filepath):
+                    filenum += 1
+                else:
+                    break
+
+            temp_surf = pygame.Surface(self._canvas.get_size()).convert_alpha()
+            temp_surf.blit(self._canvas, (0, 0))
+
+            filepath = os.path.abspath(filepath)
+            pygame.image.save(temp_surf, filepath)
+            renpy.notify(_("Saved whiteboard as {0}.").format(filepath))
 
         def dispose(self):
-            """Runs on-destroy logic when canvas is no longer used.
-               NOTE: must be called externally, RenPy does not call this."""
+            """
+            Runs on-destroy logic when canvas is no longer used.
+            NOTE: must be called externally, RenPy does not call this.
+            """
+
             # Restore original cursor
             self._enable_custom_cursor(enable=False)
             # Unlock mouse buttons
@@ -348,35 +362,37 @@ screen fom_whiteboard_screen(whiteboard):
                 spacing 10
                 xalign 1.0
 
-                textbutton _("Wipe") action Function(whiteboard.wipe)
+                textbutton _("Clear") action Function(whiteboard.wipe)
+                textbutton _("Save") action Function(whiteboard.save_as_png)
                 textbutton _("Close") action Return()
 
 screen fom_whiteboard_palette(whiteboard):
-    $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
-
     grid 4 2:
         spacing 10
 
-        use fom_whiteboard_palette_button(whiteboard, (255, 0, 0, 255), locked=is_wipe_tool) # Red
-        use fom_whiteboard_palette_button(whiteboard, (0, 255, 0, 255), locked=is_wipe_tool) # Green
-        use fom_whiteboard_palette_button(whiteboard, (0, 0, 255, 255), locked=is_wipe_tool) # Blue
+        use fom_whiteboard_palette_button(whiteboard, (255, 0, 0, 255)) # Red
+        use fom_whiteboard_palette_button(whiteboard, (0, 255, 0, 255)) # Green
+        use fom_whiteboard_palette_button(whiteboard, (0, 0, 255, 255)) # Blue
 
-        use fom_whiteboard_palette_button(whiteboard, (255, 255, 0, 255), locked=is_wipe_tool) # Yellow
-        use fom_whiteboard_palette_button(whiteboard, (0, 255, 255, 255), locked=is_wipe_tool) # Cyan
-        use fom_whiteboard_palette_button(whiteboard, (255, 0, 255, 255), locked=is_wipe_tool) # Magenta
+        use fom_whiteboard_palette_button(whiteboard, (255, 255, 0, 255)) # Yellow
+        use fom_whiteboard_palette_button(whiteboard, (0, 255, 255, 255)) # Cyan
+        use fom_whiteboard_palette_button(whiteboard, (255, 0, 255, 255)) # Magenta
 
-        use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255), locked=is_wipe_tool) # Black
-        null # Need it for grid
+        use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255)) # Black
+        null # grid spacing
 
-screen fom_whiteboard_palette_button(whiteboard, color, locked=False):
+screen fom_whiteboard_palette_button(whiteboard, color):
+    # Not the best way to approach that with targeting Wipe specifically...
+    $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
+
     button action SetField(whiteboard.brush, "color", color):
         xysize (40, 40)
 
-        # Disable clicking when locked
-        sensitive not locked
+        # Disable selecting a color when using wipe tool
+        sensitive not is_wipe_tool
 
-        if whiteboard.brush.color == color or locked:
-            # Use a slightly darker (ligher for black) color for selected color
+        if whiteboard.brush.color == color or is_wipe_tool:
+            # Use a slightly darker (ligher for black) shade for selected color
             if color != (0, 0, 0, 255):
                 background Color(color).shade(0.75)
             else:
@@ -385,7 +401,8 @@ screen fom_whiteboard_palette_button(whiteboard, color, locked=False):
             background Color(color)
 
 screen fom_whiteboard_toolbox(whiteboard):
-    default brush_pencil = _fom_whiteboard.Pencil()
+    # Copy a reference from the whiteboard so it's properly grayed out initially
+    default brush_pencil = whiteboard.brush
     default brush_wipe = _fom_whiteboard.Wipe()
 
     grid 2 1:
