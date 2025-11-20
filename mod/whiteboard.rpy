@@ -128,7 +128,12 @@ init 4 python in _fom_whiteboard:
                 # Only respond to left moust button click unless locked
                 return
 
-            target_color = surface.get_at((m_to))
+            w, h = surface.get_size()
+            if not (0 <= m_to[0] < w) or not (0 <= m_to[1] < h):
+                # Safeguard against attempts to apply outside canvas
+                return
+
+            target_color = surface.get_at(m_to)
             if target_color == self.color:
                 # No-op when applied on the same color
                 return
@@ -138,7 +143,6 @@ init 4 python in _fom_whiteboard:
             surface.set_at(m_to, self.color) # apply to the center
 
             # Apply flood fill
-            w, h = surface.get_size()
             while queue:
                 cx, cy = queue.popleft()
                 for nx, ny in ((cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)):
