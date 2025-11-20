@@ -384,14 +384,15 @@ screen fom_whiteboard_palette(whiteboard):
 screen fom_whiteboard_palette_button(whiteboard, color):
     # Not the best way to approach that with targeting Wipe specifically...
     $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
+    $ is_selected = whiteboard.brush.color == color
 
     button action SetField(whiteboard.brush, "color", color):
         xysize (40, 40)
 
         # Disable selecting a color when using wipe tool
-        sensitive not is_wipe_tool
+        sensitive not (is_wipe_tool or is_selected)
 
-        if whiteboard.brush.color == color or is_wipe_tool:
+        if is_wipe_tool or is_selected:
             # Use a slightly darker (ligher for black) shade for selected color
             if color != (0, 0, 0, 255):
                 background Color(color).shade(0.75)
