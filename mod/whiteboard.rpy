@@ -322,6 +322,10 @@ image fom_ui_icon_tool_marker = _fom_whiteboard.IM_ICON_MARKER
 image fom_ui_icon_tool_wipe = _fom_whiteboard.IM_ICON_WIPE
 
 screen fom_whiteboard_screen(whiteboard):
+    python:
+        brush_marker = _fom_whiteboard.Pencil()
+        brush_wipe = _fom_whiteboard.Wipe()
+
     vbox:
         style_prefix "fom_whiteboard"
         align (0.5, 0.5)
@@ -336,24 +340,12 @@ screen fom_whiteboard_screen(whiteboard):
         hbox:
             xsize 800
 
-            grid 4 2:
-                spacing 10
-
-                use fom_whiteboard_palette_button(whiteboard, (255, 0, 0, 255)) # Red
-                use fom_whiteboard_palette_button(whiteboard, (0, 255, 0, 255)) # Green
-                use fom_whiteboard_palette_button(whiteboard, (0, 0, 255, 255)) # Blue
-
-                use fom_whiteboard_palette_button(whiteboard, (255, 255, 0, 255)) # Yellow
-                use fom_whiteboard_palette_button(whiteboard, (0, 255, 255, 255)) # Cyan
-                use fom_whiteboard_palette_button(whiteboard, (255, 0, 255, 255)) # Magenta
-
-                use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255)) # Black
-                null # Need it for grid
+            use fom_whiteboard_palette(whiteboard)
 
             grid 2 1:
                 spacing 10
-                textbutton _("{image=fom_ui_icon_tool_marker}") xysize (40, 40) action SetField(whiteboard, "brush", _fom_whiteboard.Pencil())
-                textbutton _("{image=fom_ui_icon_tool_wipe}") xysize (40, 40) action SetField(whiteboard, "brush", _fom_whiteboard.Wipe())
+                textbutton _("{image=fom_ui_icon_tool_marker}") xysize (40, 40) action SetField(whiteboard, "brush", brush_marker)
+                textbutton _("{image=fom_ui_icon_tool_wipe}") xysize (40, 40) action SetField(whiteboard, "brush", brush_wipe)
 
             vbox:
                 spacing 10
@@ -362,13 +354,33 @@ screen fom_whiteboard_screen(whiteboard):
                 textbutton _("Wipe") action Function(whiteboard.wipe)
                 textbutton _("Close") action Return()
 
+screen fom_whiteboard_palette(whiteboard):
+    $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
 
-screen fom_whiteboard_palette_button(whiteboard, color):
+    grid 4 2:
+        spacing 10
+
+        use fom_whiteboard_palette_button(whiteboard, (255, 0, 0, 255), locked=is_wipe_tool) # Red
+        use fom_whiteboard_palette_button(whiteboard, (0, 255, 0, 255), locked=is_wipe_tool) # Green
+        use fom_whiteboard_palette_button(whiteboard, (0, 0, 255, 255), locked=is_wipe_tool) # Blue
+
+        use fom_whiteboard_palette_button(whiteboard, (255, 255, 0, 255), locked=is_wipe_tool) # Yellow
+        use fom_whiteboard_palette_button(whiteboard, (0, 255, 255, 255), locked=is_wipe_tool) # Cyan
+        use fom_whiteboard_palette_button(whiteboard, (255, 0, 255, 255), locked=is_wipe_tool) # Magenta
+
+        use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255), locked=is_wipe_tool) # Black
+        null # Need it for grid
+
+
+screen fom_whiteboard_palette_button(whiteboard, color, locked=False):
     button action SetField(whiteboard.brush, "color", color):
         xsize 40
         ysize 40
 
-        if whiteboard.brush.color == color:
+        # Disable clicking when locked
+        sensitive not locked
+
+        if whiteboard.brush.color == color or locked:
             # Use a slightly darker (ligher for black) color for selected color
             if color != (0, 0, 0, 255):
                 background Color(color).shade(0.75)
