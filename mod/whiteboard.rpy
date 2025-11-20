@@ -3,6 +3,7 @@
 
 
 init 4 python in _fom_whiteboard:
+    import collections
     import pygame
     import store
     import zlib
@@ -19,6 +20,7 @@ init 4 python in _fom_whiteboard:
 
     # NOTE: do not use 'os.path' here, RenPy hates Windows backslashes
     IM_ICON_MARKER = assets_dir + "/icon_tool_marker.png"
+    IM_ICON_FILL = assets_dir + "/icon_tool_fill.png"
     IM_ICON_WIPE = assets_dir + "/icon_tool_wipe.png"
     IM_CUR_NONE = assets_dir + "/cur_none.png"
 
@@ -29,21 +31,9 @@ init 4 python in _fom_whiteboard:
     class Brush(object):
         """Abstract brush tool for making changes to canvas."""
 
-        def hover(self, mouse_from, mouse_to):
-            """
-            Invoked on every mouse movement when no mouse buttons are held
-            (but never otherwise, mutually exclusive with Brush#apply())
-
-            Parameters:
-            - mouse_from: (x, y) tuple of previous mouse position
-            - mouse_to: (x, y) tuple of current mouse position
-            """
-
         def apply(self, surface, mouse_from, mouse_to, buttons_held):
             """
-            Invoked on every mouse movement when at least one mouse button is held
-            (but never otherwise, mutually exclusive with Brush#hover())
-
+            Invoked on every mouse movement, even if no mouse buttons are held.
             Parameters:
             - surface: pygame surface to apply brush to
             - mouse_from: (x, y) tuple of previous mouse position
@@ -90,6 +80,10 @@ init 4 python in _fom_whiteboard:
             self.max_size = max_size
 
         def apply(self, surface, m_from, m_to, buttons_held):
+            if not buttons_held:
+                # No-op if no buttons are pressed
+                return
+
             left_held, mh, rh = buttons_held
             if not left_held:
                 # Only draw with left mouse button
@@ -114,6 +108,51 @@ init 4 python in _fom_whiteboard:
         """Pencil, but with customized defaults."""
         def __init__(self, size=8, min_size=4, max_size=32, color=(255, 255, 255, 255)):
             super(Wipe, self).__init__(size, min_size, max_size, color)
+
+    class Fill(Brush):
+        """Flood-fill tool."""
+
+        def __init__(self, color=(0, 0, 0, 255)):
+            super(Fill, self).__init__()
+            self.color = color
+            self._lock = False
+
+        def apply(self, surface, m_from, m_to, buttons_held):
+            if not buttons_held:
+                # Reset lock when no buttons are held
+                self._lock = False
+                return
+
+            left_held, mh, rh = buttons_held
+            if not left_held or self._lock:
+                # Only respond to left moust button click unless locked
+                return
+
+            target_color = surface.get_at((m_to))
+            if target_color == self.color:
+                # No-op when applied on the same color
+                return
+
+            queue = collections.deque()
+            queue.append(m_to)
+            surface.set_at(m_to, self.color) # apply to the center
+
+            # Apply flood fill
+            w, h = surface.get_size()
+            while queue:
+                cx, cy = queue.popleft()
+                for nx, ny in ((cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)):
+                    if 0 <= nx < w and 0 <= ny < h:
+                        if surface.get_at((nx, ny)) == target_color:
+                            surface.set_at((nx, ny), self.color)
+                            queue.append((nx, ny))
+
+            self._lock = True
+
+        def outline(self, surface, mouse_xy):
+            x, y = mouse_xy
+            pygame.draw.line(surface, self.color, (x - 5, y), (x + 5, y), 1)
+            pygame.draw.line(surface, self.color, (x, y - 5), (x, y + 5), 1)
 
     class Whiteboard(renpy.Displayable):
         """Bare canvas displayable with customizable brush and background,
@@ -164,15 +203,18 @@ init 4 python in _fom_whiteboard:
                 off_x, off_y = self._canvas_offset
                 last_xy = (self._m_last_xy[0] - off_x, self._m_last_xy[1] - off_y)
                 this_xy = (self._m_this_xy[0] - off_x, self._m_this_xy[1] - off_y)
-
-                if self._m_pressed is not None:
-                    if any(self._m_pressed):
-                        m_buttons = tuple(self._m_pressed)
-                        self.brush.apply(self._canvas, last_xy, this_xy, m_buttons)
-                    else:
-                        self.brush.hover(last_xy, this_xy)
-
+                m_buttons = tuple(self._m_pressed)
+                self.brush.apply(self._canvas, last_xy, this_xy, m_buttons)
                 self._m_last_xy = self._m_this_xy
+
+            # Alternatively, attempt to apply just at the spot
+            # This is necessary e.g. for a fill tool, which otherwise will not
+            # be able to release its lock after mouse button was released
+            elif self._m_this_xy:
+                off_x, off_y = self._canvas_offset
+                this_xy = (self._m_this_xy[0] - off_x, self._m_this_xy[1] - off_y)
+                m_buttons = tuple(self._m_pressed) if self._m_pressed else None
+                self.brush.apply(self._canvas, this_xy, this_xy, m_buttons)
 
             # Blit updated canvas surface
             surf.blit(self._canvas, self._canvas_offset)
@@ -399,12 +441,15 @@ screen fom_whiteboard_palette_button(whiteboard, color):
 screen fom_whiteboard_toolbox(whiteboard):
     # Copy a reference from the whiteboard so it's properly grayed out initially
     default brush_pencil = whiteboard.brush
+    default brush_fill = _fom_whiteboard.Fill()
     default brush_wipe = _fom_whiteboard.Wipe()
 
-    grid 2 1:
+    grid 2 2:
         spacing 10
         use fom_whiteboard_tool_button(whiteboard, brush_pencil, _fom_whiteboard.IM_ICON_MARKER)
+        use fom_whiteboard_tool_button(whiteboard, brush_fill, _fom_whiteboard.IM_ICON_FILL)
         use fom_whiteboard_tool_button(whiteboard, brush_wipe, _fom_whiteboard.IM_ICON_WIPE)
+        null # spacing
 
 screen fom_whiteboard_tool_button(whiteboard, tool, icon_path):
     textbutton "{{image={0}}}".format(icon_path):
