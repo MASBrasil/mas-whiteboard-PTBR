@@ -96,24 +96,19 @@ init 4 python in _fom_whiteboard:
                 return
 
             if m_from != m_to:
-                m_from_l = self._adjust_xy(m_from)
-                m_to_l = self._adjust_xy(m_to)
-                pygame.draw.line(surface, self.color, m_from_l, m_to_l, self.size)
+                pygame.draw.line(surface, self.color, m_from, m_to, self.size)
 
-            pygame.draw.circle(surface, self.color, self._adjust_xy(m_from), self.size // 2)
-            pygame.draw.circle(surface, self.color, self._adjust_xy(m_to), self.size // 2)
+            pygame.draw.circle(surface, self.color, m_from, self.size // 2)
+            pygame.draw.circle(surface, self.color, m_to, self.size // 2)
 
         def outline(self, surface, mouse_xy):
-            pygame.draw.circle(surface, (0, 0, 0, 255), self._adjust_xy(mouse_xy), self.size // 2, 1)
+            pygame.draw.circle(surface, (0, 0, 0, 255), mouse_xy, self.size // 2, 1)
 
         def increment_size(self):
             self.size = min(self.size + 1, self.max_size)
 
         def decrement_size(self):
             self.size = max(self.size - 1, self.min_size)
-
-        def _adjust_xy(self, xy, add=(0, 0)):
-            return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
 
     class Wipe(Pencil):
         """Pencil, but with customized defaults."""
