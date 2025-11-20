@@ -318,14 +318,7 @@ style fom_whiteboard_button_text_dark is generic_button_text_dark:
 
 # Screen and displayables
 
-image fom_ui_icon_tool_marker = _fom_whiteboard.IM_ICON_MARKER
-image fom_ui_icon_tool_wipe = _fom_whiteboard.IM_ICON_WIPE
-
 screen fom_whiteboard_screen(whiteboard):
-    python:
-        brush_marker = _fom_whiteboard.Pencil()
-        brush_wipe = _fom_whiteboard.Wipe()
-
     vbox:
         style_prefix "fom_whiteboard"
         align (0.5, 0.5)
@@ -338,14 +331,11 @@ screen fom_whiteboard_screen(whiteboard):
             add whiteboard
 
         hbox:
-            xsize 800
+            xsize 720
+            xalign 0.5
 
+            use fom_whiteboard_toolbox(whiteboard)
             use fom_whiteboard_palette(whiteboard)
-
-            grid 2 1:
-                spacing 10
-                textbutton _("{image=fom_ui_icon_tool_marker}") xysize (40, 40) action SetField(whiteboard, "brush", brush_marker)
-                textbutton _("{image=fom_ui_icon_tool_wipe}") xysize (40, 40) action SetField(whiteboard, "brush", brush_wipe)
 
             vbox:
                 spacing 10
@@ -371,11 +361,9 @@ screen fom_whiteboard_palette(whiteboard):
         use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255), locked=is_wipe_tool) # Black
         null # Need it for grid
 
-
 screen fom_whiteboard_palette_button(whiteboard, color, locked=False):
     button action SetField(whiteboard.brush, "color", color):
-        xsize 40
-        ysize 40
+        xysize (40, 40)
 
         # Disable clicking when locked
         sensitive not locked
@@ -388,3 +376,19 @@ screen fom_whiteboard_palette_button(whiteboard, color, locked=False):
                 background Color(color).tint(0.75)
         else:
             background Color(color)
+
+screen fom_whiteboard_toolbox(whiteboard):
+    python:
+        brush_marker = _fom_whiteboard.Pencil()
+        brush_wipe = _fom_whiteboard.Wipe()
+
+    grid 1 2:
+        spacing 10
+        use fom_whiteboard_tool_button(whiteboard, brush_marker, _fom_whiteboard.IM_ICON_MARKER)
+        use fom_whiteboard_tool_button(whiteboard, brush_wipe, _fom_whiteboard.IM_ICON_WIPE)
+
+screen fom_whiteboard_tool_button(whiteboard, tool, icon_path):
+    textbutton "{{image={0}}}".format(icon_path):
+        #sensitive whiteboard.brush != tool # No idea why, but this doesn't work :/
+        action SetField(whiteboard, "brush", tool)
+        xysize (40, 40)
