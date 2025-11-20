@@ -4,15 +4,15 @@
 init -990 python:
     store.mas_submod_utils.Submod(
         author="Friends of Monika",
-        name="Whiteboard",
-        description=_("Adds a (virtual) whiteboard for you and your [m_name] to draw on!~"),
+        name="Whiteboard Submod",
+        description=_("Adds a (virtual) whiteboard for you to draw on!~"),
         version="1.0.0"
     )
 
 init -989 python:
     if store.mas_submod_utils.isSubmodInstalled("Submod Updater Plugin"):
         store.sup_utils.SubmodUpdater(
-            submod="Whiteboard",
+            submod="Whiteboard Submod",
             user_name="friends-of-monika",
             repository_name="mas-whiteboard",
             extraction_depth=2

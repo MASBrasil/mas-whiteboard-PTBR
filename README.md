@@ -1,58 +1,34 @@
-> [!NOTE]
-> This README is a template too! Please review its source code (and not just)
-> a rendered document to adjust it to your own needs.
-
 <p align="center">
-	<!-- If you have a submod banner, you can use an image here. -->
 	<!-- <img src="doc/Banner.png" width="360" height="200"> -->
-	<h1 align="center">📂 MAS Submod Template 📂</h1>
-	<h3 align="center">Boilerplate for you to set up a submod project quickly~</h3>
+	<h1 align="center">🎨 Whiteboard Submod 🎨</h1>
+	<h3 align="center">Adds a (virtual) whiteboard for you to draw on!~</h3>
 </p>
 
-<!-- Below are badges and links that you can adjust to your needs.
-	Most of them use shields.io, so you can make your own ones easily too.
-	Replace YOUR_USERNAME with your Github username and YOUR_REPO_NAME with
-	your repository name. -->
 <p align="center">
-	<!-- Latest release version of your submod. -->
-	<a href="https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/releases/latest">
-		<img alt="Latest release" src="https://img.shields.io/github/v/release/YOUR_USERNAME/YOUR_REPO_NAME">
+	<a href="https://github.com/Friends-of-Monika/mas-whiteboard/releases/latest">
+		<img alt="Latest release" src="https://img.shields.io/github/v/release/Friends-of-Monika/mas-whiteboard">
 	</a>
-	<!-- Total downloads count of your submod releases. -->
-	<a href="https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/releases">
-		<img alt="Release downloads" src="https://img.shields.io/github/downloads/YOUR_USERNAME/YOUR_REPO_NAME/total">
+	<a href="https://github.com/Friends-of-Monika/mas-whiteboard/releases">
+		<img alt="Release downloads" src="https://img.shields.io/github/downloads/Friends-of-Monika/mas-whiteboard/total">
 	</a>
-	<!-- License of your submod. If you don't know what that is, you likely don't need it at all. -->
-	<a href="https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/blob/main/LICENSE.txt">
-		<img alt="MIT license badge" src="https://img.shields.io/github/license/YOUR_USERNAME/YOUR_REPO_NAME">
+	<a href="https://github.com/Friends-of-Monika/mas-whiteboard/blob/main/LICENSE.txt">
+		<img alt="MIT license badge" src="https://img.shields.io/github/license/Friends-of-Monika/mas-whiteboard">
 	</a>
-	<!-- Your Discord server invite link & badge.
-		For the badge to display, go to your server settings > Widget > copy ID and replace
-		YOUR_DISCORD_SERVER_ID with it. -->
-	<!-- <a href="https://discord.gg/YOUR_DISCORD_INVITE_CODE">
-		<img alt="Discord server" src="https://discordapp.com/api/guilds/YOUR_DISCORD_SERVER_ID/widget.png?style=shield">
-	</a> -->
-	<!-- If you have Ko-Fi, you can use the code from the link here. -->
-	<!-- <a href="https://ko-fi.com/YOUR_KOFI_CODE">
+	<a href="https://mon.icu/discord">
+		<img alt="Discord server" src="https://discordapp.com/api/guilds/1029849988953546802/widget.png?style=shield">
+	</a>
+	<a href="https://ko-fi.com/dreamscached">
 		<img alt="Ko-fi badge" src="https://ko-fi.com/img/githubbutton_sm.svg" height="20">
-	</a> -->
+	</a>
 </p>
 
-<!-- Nice features section to highlight key things. -->
 ## 🌟 Features
 
-* Convenient project structure
-* Submod .zip packaging scripts
-* README based on Friends of Monika submod README's
-* Works for submods of intermediate complexity
-* Based on:
-  - [Say Something Submod](https://github.com/friends-of-monika/mas-saysomething)
-  - [Self-Harm Awareness Submod](https://github.com/friends-of-monika/mas-selfharm)
-  - [Autostart Submod](https://github.com/friends-of-monika/mas-autostart)
-  - And is used by Friends of Monika team for future projects
+* A simple whiteboard you can draw something on
+* Comes with a marker (7 colors!) tool and a whiteboard wipe
+* Use mouse wheel to increase/decrease pen size
+* Whiteboard contents can be easily saved in one click
 
-<!-- If you want to show off screenshots, you can put them in 'doc/screenshots'
-	and reference them here. This is basically an HTML table with two columns. -->
 <!-- ## 🖼️ Screenshots
 
 <details>
@@ -69,28 +45,24 @@
 	</table>
 </details> -->
 
-<!-- Generic installation guide that works for .zip packages built by scripts of this template. -->
 ## ❓ Installing
 
-1. Go to [the latest release page](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME)
+1. Go to [the latest release page](https://github.com/Friends-of-Monika/mas-whiteboard)
    and scroll to Assets section.
-2. Download `YOUR_SUBMOD_NAME-VERSION.zip` file.
-3. Drag and drop `game/` folder from it into your DDLC folder. <br>
-   **NOTE:** make sure you don't drag it *into `game`*!
+2. Download `whiteboard-submod-VERSION.zip` file.
+3. Drag and drop `Submods` folder from it into your `game` folder.
 4. You're all set!~
 
-<!-- If you want, you can add this nice special thanks section. -->
-<!-- ## 🏅 Special thanks
+## 🏅 Special thanks
 
 We thank the following people for helping this submod get released!
 
-- [Someone](https://github.com/example) &mdash; for being a nice friend
-- [Foobar](https://reddit.com/u/foobar) &mdash; for being an awesome person
-... -->
+- [u/KiwiKrieger08](https://www.reddit.com/user/KiwiKrieger08/) &mdash; for beating me to
+  it and giving motivation to complete archived work
 
 ## 💬 Join our Discord
 
 We're up to chat! Join our Discord server
-[here][https://discord.gg/YOUR_DISCORD_INVITE_CODE].
+[here](https://mon.icu/discord).
 
-[![Discord server invitation][https://discordapp.com/api/guilds/YOUR_DISCORD_SERVER_ID/widget.png?style=banner3]][https://discord.gg/YOUR_DISCORD_INVITE_CODE]
+[![Discord server invitation](https://discordapp.com/api/guilds/1029849988953546802/widget.png?style=banner3)](https://mon.icu/discord)
