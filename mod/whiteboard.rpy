@@ -65,26 +65,14 @@ init 4 python in _fom_whiteboard:
             Defines optional logic for brush size decrementing (mouse wheel down.)
             """
 
-    class _PencilBase(Brush):
-        """
-        Leftovers from original (less-than-ideal) Pencil implementation.
-        Should be cleaned up later. For internal use.
-        """
-
-        def __init__(self, size=4, color=(0, 0, 0, 255)):
-            super(_PencilBase, self).__init__(self)
-            self.size = size
-            self.color = color
-
-        def _adjust_xy(self, xy, add=(0, 0)):
-            return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
-
-    class Pencil(_PencilBase):
+    class Pencil(Brush):
         """Simple brush that draws circles of given size and color under
            the cursor and uses lines for interpolated strokes."""
 
         def __init__(self, size=4, min_size=2, max_size=32, color=(0, 0, 0, 255)):
             super(Pencil, self).__init__(size, color)
+            self.size = size
+            self.color = color
             self.min_size = min_size
             self.max_size = max_size
 
@@ -99,7 +87,7 @@ init 4 python in _fom_whiteboard:
                 m_to_l = self._adjust_xy(m_to)
                 pygame.draw.line(surface, self.color, m_from_l, m_to_l, self.size)
 
-            x, y = self._adjust_xy(m_from)
+            x, y = self._adjust_xy(m_to)
             pygame.draw.circle(surface, self.color, (x, y), self.size // 2)
 
         def outline(self, surface, mouse_xy):
@@ -111,6 +99,9 @@ init 4 python in _fom_whiteboard:
 
         def decrement_size(self):
             self.size = max(self.size - 1, self.min_size)
+
+        def _adjust_xy(self, xy, add=(0, 0)):
+            return (xy[0] - self.size // 2 + add[0], xy[1] - self.size // 2 + add[1])
 
     class Wipe(Pencil):
         """Pencil, but with customized defaults."""
