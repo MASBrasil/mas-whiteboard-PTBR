@@ -4,6 +4,7 @@
 
 init 4 python in _fom_whiteboard:
     import collections
+    import colorsys
     import pygame
     import store
     import zlib
@@ -22,6 +23,7 @@ init 4 python in _fom_whiteboard:
     IM_ICON_MARKER = assets_dir + "/icon_tool_marker.png"
     IM_ICON_FILL = assets_dir + "/icon_tool_fill.png"
     IM_ICON_WIPE = assets_dir + "/icon_tool_wipe.png"
+    IM_ICON_PALETTE = assets_dir + "/icon_color_palette.png"
     IM_CUR_NONE = assets_dir + "/cur_none.png"
 
     # MAS apparently has it None by default
@@ -325,6 +327,13 @@ init 4 python in _fom_whiteboard:
             # Unlock mouse buttons
             self._lock_mbuttons(lock=False)
 
+        def override_cursor(self, override):
+            """
+            Whether to lock custom cursor and brush outline and prevent
+            the canvas from rendering them.
+            """
+            self._m_cur_override = override
+
 
         # Private methods
 
@@ -357,6 +366,98 @@ init 4 python in _fom_whiteboard:
             x, y = cur_xy
             return ((x >= off_x and y >= off_y) and
                     (x < w - off_x and y < h - off_y))
+
+    class ColorPicker(renpy.Displayable):
+        """
+        A color picker displayable to select custom color instead of
+        predefined set of color buttons.
+        """
+
+        def __init__(self):
+            super(ColorPicker, self).__init__()
+            self.selected = (0, 0, 0)
+            self._size = None
+            self._hue = 0
+            self._sat = 1.0
+            self._val = 1.0
+
+            # store click coordinates
+            self._last_mx = None
+            self._last_my = None
+
+            # Surface cache
+            self._surf = None
+
+        def render(self, width, height, st, at):
+            self._size = (width, height)
+            if self._surf is None:
+                self._make_gradient()
+
+            r = renpy.Render(width, height)
+            surf = r.canvas().get_surface()
+            surf.blit(self._surf, (0, 0))
+
+            # Draw the crosshair at the current selection
+            if self._last_mx is not None and self._last_my is not None:
+                pygame.draw.line(surf, (0, 0, 0), (self._last_mx - 5, self._last_my), (self._last_mx + 5, self._last_my), 1)
+                pygame.draw.line(surf, (0, 0, 0), (self._last_mx, self._last_my - 5), (self._last_mx, self._last_my + 5), 1)
+
+            return r
+
+        def event(self, ev, x, y, st):
+            w, h = self._size
+
+            # Mouse drag
+            if ((ev.type == pygame.MOUSEMOTION and ev.buttons[0] == 1) or
+                (ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1)): # left button held
+
+                if 0 <= x < w and 0 <= y < h:
+                    gradient_width = w - 10
+                    if x < gradient_width:
+                        self._hue = 360.0 * x / gradient_width
+                        self._sat = 1.0 - y / h
+                        self.selected = self._hsv_to_rgb(self._hue, self._sat, self._val)
+                    else:
+                        gval = int(255 * (1.0 - y / h))
+                        self.selected = (gval, gval, gval)
+
+                    self._last_mx = x
+                    self._last_my = y
+                    renpy.restart_interaction()
+
+            renpy.redraw(self, 0)
+            return None
+
+        def _hsv_to_rgb(self, h, s, v):
+            r, g, b = colorsys.hsv_to_rgb(h/360.0, s, v)
+            r = int(min(max(r * 255, 0), 255))
+            g = int(min(max(g * 255, 0), 255))
+            b = int(min(max(b * 255, 0), 255))
+            return r, g, b
+
+        def _make_gradient(self):
+            surf = pygame.Surface(self._size)
+            w, h = self._size
+
+            gradient_width = int(w - 10)
+            gray_width = 10
+
+            for x in range(gradient_width):
+                for y in range(int(h)):
+                    hue = 360.0 * x / gradient_width
+                    sat = 1.0 - y / h
+                    r, g, b = colorsys.hsv_to_rgb(hue/360.0, sat, self._val)
+                    r = int(min(max(r*255, 0), 255))
+                    g = int(min(max(g*255, 0), 255))
+                    b = int(min(max(b*255, 0), 255))
+                    surf.set_at((x, y), (r, g, b))
+
+            for x in range(gradient_width, int(w)):
+                for y in range(int(h)):
+                    gval = int(255 * (1.0 - y / h))
+                    surf.set_at((x, y), (gval, gval, gval))
+
+            self._surf = surf
 
 
 # Displayable styles (copypaste from MAS mainly)
@@ -420,7 +521,7 @@ screen fom_whiteboard_palette(whiteboard):
         use fom_whiteboard_palette_button(whiteboard, (255, 0, 255, 255)) # Magenta
 
         use fom_whiteboard_palette_button(whiteboard, (0, 0, 0, 255)) # Black
-        null # grid spacing
+        use fom_whiteboard_palette_button_picker(whiteboard) # Color picker
 
 screen fom_whiteboard_palette_button(whiteboard, color):
     # Not the best way to approach that with targeting Wipe specifically...
@@ -442,6 +543,14 @@ screen fom_whiteboard_palette_button(whiteboard, color):
         else:
             background Color(color)
 
+screen fom_whiteboard_palette_button_picker(whiteboard):
+    $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
+    textbutton "{{image={0}}}".format(_fom_whiteboard.IM_ICON_PALETTE):
+        xysize (40, 40)
+        action Show("fom_whiteboard_color_picker", None, whiteboard)
+        # Disable selecting a color when using wipe tool
+        sensitive not is_wipe_tool
+
 screen fom_whiteboard_toolbox(whiteboard):
     # Copy a reference from the whiteboard so it's properly grayed out initially
     default brush_pencil = whiteboard.brush
@@ -460,3 +569,27 @@ screen fom_whiteboard_tool_button(whiteboard, tool, icon_path):
         sensitive whiteboard.brush != tool
         action SetField(whiteboard, "brush", tool)
         xysize (40, 40)
+
+screen fom_whiteboard_color_picker(whiteboard):
+    default picker = _fom_whiteboard.ColorPicker()
+
+    style_prefix "fom_whiteboard"
+    zorder 100
+    modal True
+
+    frame:
+        xalign 0.5
+        yalign 0.5
+        padding (20, 20, 20, 20)
+
+        vbox:
+            xsize 240
+            ysize 150
+            spacing 10
+
+            add picker
+
+            hbox:
+                spacing 10
+                textbutton "OK" action [SetField(whiteboard.brush, "color", picker.selected), Hide("fom_whiteboard_color_picker")]
+                textbutton "Cancel" action [Hide("fom_whiteboard_color_picker")]
