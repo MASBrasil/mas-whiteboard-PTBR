@@ -11,7 +11,7 @@ init 4 python in _fom_whiteboard:
     import io
     import os
 
-    script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard", relative=True)
+    script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard Submod", relative=True)
     assets_dir = script_dir + "/assets"
 
     IM_UI_WHITEBOARD = os.path.join(store.config.gamedir, assets_dir, "ui_whiteboard_frame.png")
