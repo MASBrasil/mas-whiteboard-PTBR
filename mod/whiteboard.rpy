@@ -192,6 +192,12 @@ init 4 python in _fom_whiteboard:
             # Whether to capture all mouse events or not
             self._m_cap_all = False
 
+            # History buffer
+            self._history_lock = False
+            self._history = []
+            self._redo = []
+            self._max_history = 20
+
         def render(self, width, height, st, at):
             self._dim = (width, height)
 
@@ -250,8 +256,14 @@ init 4 python in _fom_whiteboard:
                 elif ev.button == 5:
                     self.brush.decrement_size()
 
+                # Save snapshot before applying a brush
+                if initial_unset and ev.button < 4:
+                    self._push_history()
+
                 # Set initial position if none were held before this event was fired
                 if initial_unset:
+                    # Prevent undo/redo during active brush stroke
+                    self._history_lock = True
                     self._m_this_xy = (x, y)
                     self._m_last_xy = (x, y)
 
@@ -266,6 +278,8 @@ init 4 python in _fom_whiteboard:
 
                     # When no mouse buttons are held, reset mouse state and positions
                     if not any(self._m_pressed):
+                        # Reset history lock
+                        self._history_lock = False
                         self._m_pressed = None
                         self._m_this_xy = None
                         self._m_last_xy = None
@@ -327,12 +341,19 @@ init 4 python in _fom_whiteboard:
             # Unlock mouse buttons
             self._lock_mbuttons(lock=False)
 
-        def override_cursor(self, override):
-            """
-            Whether to lock custom cursor and brush outline and prevent
-            the canvas from rendering them.
-            """
-            self._m_cur_override = override
+        def undo(self):
+            if not self._history or self._history_lock:
+                return
+
+            self._redo.append(self._canvas.copy())
+            self._canvas = self._history.pop()
+
+        def redo(self):
+            if not self._redo or self._history_lock:
+                return
+
+            self._history.append(self._canvas.copy())
+            self._canvas = self._redo.pop()
 
 
         # Private methods
@@ -366,6 +387,13 @@ init 4 python in _fom_whiteboard:
             x, y = cur_xy
             return ((x >= off_x and y >= off_y) and
                     (x < w - off_x and y < h - off_y))
+
+        def _push_history(self):
+            snap = self._canvas.copy()
+            self._history.append(snap)
+            self._redo = []
+            if len(self._history) > self._max_history:
+                self._history.pop(0)
 
     class ColorPicker(renpy.Displayable):
         """
@@ -482,6 +510,9 @@ style fom_whiteboard_button_text_dark is generic_button_text_dark:
 # Screen and displayables
 
 screen fom_whiteboard_screen(whiteboard):
+    key "ctrl_K_z" action Function(whiteboard.undo)
+    key "ctrl_K_y" action Function(whiteboard.redo)
+
     vbox:
         style_prefix "fom_whiteboard"
         align (0.5, 0.5)
