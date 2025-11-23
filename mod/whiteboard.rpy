@@ -593,6 +593,11 @@ screen fom_whiteboard_palette(whiteboard):
         use fom_whiteboard_palette_button_picker(whiteboard) # Color picker
 
 screen fom_whiteboard_palette_button(whiteboard, color):
+    # To change color on hover
+    default is_hovered = False
+    default active_tint = 0.75
+    default hover_tint = 0.85
+
     # Not the best way to approach that with targeting Wipe specifically...
     $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
     $ is_selected = whiteboard.brush.color == color
@@ -602,13 +607,20 @@ screen fom_whiteboard_palette_button(whiteboard, color):
 
         # Disable selecting a color when using wipe tool
         sensitive not (is_wipe_tool or is_selected)
+        hovered _fom_rpy_backports.ToggleLocalVariable("is_hovered")
+        unhovered _fom_rpy_backports.ToggleLocalVariable("is_hovered")
 
         if is_wipe_tool or is_selected:
             # Use a slightly darker (ligher for black) shade for selected color
             if color != (0, 0, 0, 255):
-                background Color(color).shade(0.75)
+                background Color(color).shade(active_tint)
             else:
-                background Color(color).tint(0.75)
+                background Color(color).tint(active_tint)
+        elif is_hovered:
+            if color != (0, 0, 0, 255):
+                background Color(color).shade(hover_tint)
+            else:
+                background Color(color).tint(hover_tint)
         else:
             background Color(color)
 
