@@ -609,8 +609,8 @@ screen fom_whiteboard_color_picker(whiteboard):
     modal True
 
     frame:
-        xalign 0.5
-        yalign 0.5
+        xalign 0.45
+        yalign 0.9
         padding (20, 20, 20, 20)
 
         vbox:
