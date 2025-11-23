@@ -171,18 +171,21 @@ init 4 python in _fom_whiteboard:
         def __init__(self, **kwargs):
             renpy.Displayable.__init__(self, **kwargs)
 
-            # Preload assets
-            self.im_ui_whiteboard = pygame.image.load(IM_UI_WHITEBOARD).convert_alpha()
-
             # Current brush and background
             self.brush = Pencil()
             self.background = (255, 255, 255, 255)
+
+            # Color picker
+            self.color_picker = ColorPicker()
 
             # Canvas surface and displayable dimensions (available at first render)
             self._canvas_dim = (720, 480)
             self._canvas_offset = (15, 18) # because of the frame
             self._canvas = None
             self._dim = None
+
+            # Preload assets
+            self._im_ui_whiteboard = pygame.image.load(IM_UI_WHITEBOARD).convert_alpha()
 
             # Mouse position, hover and press state
             self._m_pressed = None
@@ -239,7 +242,7 @@ init 4 python in _fom_whiteboard:
                 self.brush.outline(surf, self._m_this_xy)
 
             # Draw frame
-            surf.blit(self.im_ui_whiteboard, (0, 0))
+            surf.blit(self._im_ui_whiteboard, (0, 0))
 
             # Redraw next frame immediately
             renpy.redraw(self, 0)
@@ -496,6 +499,11 @@ init 4 python in _fom_whiteboard:
             else:
                 renpy.notify(_("Unknown color format: {0}").format(s[:16]))
 
+        def reset(self):
+            self.selected = None
+            self._last_mx = None
+            self._last_my = None
+
         def _hsv_to_rgb(self, h, s, v):
             r, g, b = colorsys.hsv_to_rgb(h/360.0, s, v)
             r = int(min(max(r * 255, 0), 255))
@@ -623,8 +631,11 @@ screen fom_whiteboard_palette_button(whiteboard, color):
     $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
     $ is_selected = whiteboard.brush.color == color
 
-    button action SetField(whiteboard.brush, "color", color):
+    button:
         xysize (40, 40)
+
+        # Set currently selected brush color and reset color picker selected color
+        action [SetField(whiteboard.brush, "color", color), Function(whiteboard.color_picker.reset)]
 
         # Disable selecting a color when using wipe tool
         sensitive not (is_wipe_tool or is_selected)
@@ -649,7 +660,7 @@ screen fom_whiteboard_palette_button_picker(whiteboard):
     $ is_wipe_tool = isinstance(whiteboard.brush, _fom_whiteboard.Wipe)
     textbutton "{{image={0}}}".format(_fom_whiteboard.IM_ICON_PALETTE):
         xysize (40, 40)
-        action Show("fom_whiteboard_color_picker", None, whiteboard)
+        action Show("fom_whiteboard_color_picker", None, whiteboard, whiteboard.color_picker)
         # Disable selecting a color when using wipe tool
         sensitive not is_wipe_tool
 
@@ -672,9 +683,7 @@ screen fom_whiteboard_tool_button(whiteboard, tool, icon_path):
         action SetField(whiteboard, "brush", tool)
         xysize (40, 40)
 
-screen fom_whiteboard_color_picker(whiteboard):
-    default picker = _fom_whiteboard.ColorPicker()
-
+screen fom_whiteboard_color_picker(whiteboard, picker):
     key "ctrl_K_v" action [Function(picker.from_clipboard, whiteboard), Hide("fom_whiteboard_color_picker")]
 
     style_prefix "fom_whiteboard"
