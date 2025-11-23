@@ -160,8 +160,8 @@ init 4 python in _fom_whiteboard:
 
         def outline(self, surface, mouse_xy):
             x, y = mouse_xy
-            pygame.draw.line(surface, self.color, (x - 5, y), (x + 5, y), 1)
-            pygame.draw.line(surface, self.color, (x, y - 5), (x, y + 5), 1)
+            pygame.draw.line(surface, (0, 0, 0, 255), (x - 5, y), (x + 5, y), 1)
+            pygame.draw.line(surface, (0, 0, 0, 255), (x, y - 5), (x, y + 5), 1)
 
     class Whiteboard(renpy.Displayable):
         """Bare canvas displayable with customizable brush and background,
