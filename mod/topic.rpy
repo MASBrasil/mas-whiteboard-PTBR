@@ -16,14 +16,16 @@ init 5 python:
 
 label fom_whiteboard_show:
     if mas_getEVL_shown_count("fom_whiteboard_show") == 0:
-        m 1hua "Sure!{w=0.3} Just a moment, let me bring it for you..."
+        m 1eua "Sure!{w=0.3} Just a moment, let me bring it for you.{w=0.3}.{w=0.3}.{w=0.3}{nw}"
     else:
-        m 1hua "Sure, just a moment~"
+        m 1hua "Sure, just a moment.{w=0.3}.{w=0.3}.{w=0.3}{nw}"
 
-    # Hide textbox and hide Monika with dissolve effect
-    window hide
-    with dissolve
-    call spaceroom(hide_monika=True, dissolve_all=True, scene_change=False, show_emptydesk=False)
+    call spaceroom(hide_monika=True, scene_change=True, dissolve_all=True)
+
+    if mas_getEVL_shown_count("fom_whiteboard_show") == 0:
+        m "I wouldn't want to seem rude staring at you as you draw, so I'll just stand right beside, okay?~"
+    else:
+        m "There~"
 
     # Setup whiteboard canvas, calls canvas screen with dissolve and hides with dissolve
     $ whiteboard_canvas = store._fom_whiteboard.Whiteboard()
@@ -35,14 +37,12 @@ label fom_whiteboard_show:
     $ whiteboard_canvas.dispose()
     $ del whiteboard_canvas
 
-    # Restore textbox and show Monika with dissolve effect
-    window auto
-    with dissolve
-    call spaceroom(hide_monika=False, dissolve_all=True, scene_change=False, show_emptydesk=False)
-
     if label_time_spent < datetime.timedelta(seconds=10):
-        m 1hua "Done already? Ahaha~"
-    m 3eua "Just tell me if you'll need a whiteboard again, [mas_get_player_nickname()]."
+        m "Done already? Ahaha~"
 
+    m "Let me take it away now.{w=0.3}.{w=0.3}.{w=0.3}{nw}"
+    call mas_transition_from_emptydesk("monika 3hua")
+
+    m 3hua "Just tell me if you'll need a whiteboard again, [mas_get_player_nickname()]~"
     $ del label_init_ts, label_time_spent
     return
