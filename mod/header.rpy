@@ -6,7 +6,8 @@ init -990 python:
         author="Friends of Monika",
         name="Whiteboard Submod",
         description=_("Adds a (virtual) whiteboard for you to draw on!~"),
-        version="1.0.0"
+        version="1.0.0",
+        settings_pane="fom_whiteboard_settings_pane"
     )
 
 init -989 python:

@@ -2,6 +2,8 @@
 # Report issues and ask questions at https://github.com/friends-of-monika/mas-whiteboard/issues
 
 
+# UI definitions
+
 init 4 python in _fom_whiteboard:
     import collections
     import colorsys
@@ -526,6 +528,21 @@ init 4 python in _fom_whiteboard:
             self._surf = surf
 
 
+# Random tips displayed on whiteboard show
+
+init 4 python in _fom_whiteboard:
+    UI_NOTIFY_TIPS = [
+        _("use your scroll wheel to adjust brush size"),
+        _("you can paste a color by its hex code by pressing Ctrl-V with color picker opened"),
+        _("press Ctrl-Z or Ctrl-Y to undo or redo your latest actions"),
+        _("you can disable these tips under Whiteboard Submod section in Submods menu")
+    ]
+
+    def show_random_tip():
+        tip = renpy.random.choice(UI_NOTIFY_TIPS)
+        renpy.notify(_("Tip: {0}").format(tip))
+
+
 # Displayable styles (copypaste from MAS mainly)
 
 style fom_whiteboard_button is generic_button_light:
@@ -545,9 +562,13 @@ style fom_whiteboard_button_text_dark is generic_button_text_dark:
     layout "subtitle"
 
 
-# Screen and displayables
+# Screens and displayables
 
 screen fom_whiteboard_screen(whiteboard):
+    # Show a random tip unless disabled in settings
+    if persistent._fom_whiteboard_show_tips:
+        on "show" action Function(_fom_whiteboard.show_random_tip)
+
     key "ctrl_K_z" action Function(whiteboard.undo)
     key "ctrl_K_y" action Function(whiteboard.redo)
 
