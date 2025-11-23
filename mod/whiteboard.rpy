@@ -10,6 +10,7 @@ init 4 python in _fom_whiteboard:
     import zlib
     import io
     import os
+    import re
 
     script_dir = store.fom_getScriptDir(fallback="Submods/Whiteboard Submod", relative=True)
     assets_dir = script_dir + "/assets"
@@ -456,6 +457,43 @@ init 4 python in _fom_whiteboard:
             renpy.redraw(self, 0)
             return None
 
+        @staticmethod
+        def from_clipboard(whiteboard):
+            data = pygame.scrap.get(pygame.SCRAP_TEXT)
+
+            if not data:
+                renpy.notify(_("Clipboard is empty!"))
+                return
+
+            s = data.decode("utf-8", errors="ignore").strip()
+            color = None
+
+            re_rgb  = re.findall(r'^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$', s)
+            re_rgba = re.findall(r'^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$', s)
+            re_hex  = re.findall(r'^#?([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$', s)
+
+            if re_rgb or re_rgba:
+                nums = (re_rgb or re_rgba)[0]
+                color = tuple(int(n) for n in nums[:3])
+            elif re_hex:
+                hexstr = re_hex[0]
+                if len(hexstr) == 3:
+                    r, g, b = hexstr
+                    color = (int(r+r, 16), int(g+g, 16), int(b+b, 16))
+                elif len(hexstr) == 6:
+                    color = (
+                        int(hexstr[0:2], 16),
+                        int(hexstr[2:4], 16),
+                        int(hexstr[4:6], 16),
+                    )
+
+            if color is not None:
+                color_hex = "".join("{:02x}".format(c) for c in color)
+                renpy.notify(_("Set color from clipboard: {color=" + color_hex + "}" + s + "{/color}"))
+                whiteboard.brush.color = color
+            else:
+                renpy.notify(_("Unknown color format: {0}").format(s[:16]))
+
         def _hsv_to_rgb(self, h, s, v):
             r, g, b = colorsys.hsv_to_rgb(h/360.0, s, v)
             r = int(min(max(r * 255, 0), 255))
@@ -603,6 +641,8 @@ screen fom_whiteboard_tool_button(whiteboard, tool, icon_path):
 
 screen fom_whiteboard_color_picker(whiteboard):
     default picker = _fom_whiteboard.ColorPicker()
+
+    key "ctrl_K_v" action [Function(picker.from_clipboard, whiteboard), Hide("fom_whiteboard_color_picker")]
 
     style_prefix "fom_whiteboard"
     zorder 100
