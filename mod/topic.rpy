@@ -42,8 +42,7 @@ label fom_whiteboard_show:
 
     if label_time_spent < datetime.timedelta(seconds=10):
         m 1hua "Done already? Ahaha~"
-    elif mas_getEVL_shown_count("fom_whiteboard_show") == 0:
-        m 3eua "Just tell me if you'll need a whiteboard again, [mas_get_player_nickname()]~"
+    m 3eua "Just tell me if you'll need a whiteboard again, [mas_get_player_nickname()]."
 
     $ del label_init_ts, label_time_spent
     return
