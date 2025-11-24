@@ -51,7 +51,7 @@
 
 ## ❓ Installing
 
-1. Go to [the latest release page](https://github.com/Friends-of-Monika/mas-whiteboard)
+1. Go to [the latest release page](https://github.com/Friends-of-Monika/mas-whiteboard/releases/latest)
    and scroll to Assets section.
 2. Download `whiteboard-submod-VERSION.zip` file.
 3. Drag and drop `Submods` folder from it into your `game` folder.
