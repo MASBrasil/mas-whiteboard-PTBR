@@ -29,21 +29,24 @@
 * Use mouse wheel to increase/decrease pen size
 * Whiteboard contents can be easily saved in one click
 
-<!-- ## 🖼️ Screenshots
+## 🖼️ Screenshots
 
 <details>
 	<summary>Click here to see all screenshots...</summary>
 	<table>
 		<tr>
-			<td><img src="doc/screenshots/Screenshot0.png" alt="GUI example"></td>
-			<td><img src="doc/screenshots/Screenshot1.png" alt="Topics overview"></td>
+			<td><img src="doc/screenshots/screenshot0001.png" alt="Monika tells the player about her new whiteboard"></td>
+			<td><img src="doc/screenshots/screenshot0002.png" alt="Line from the whiteboard topic"></td>
 		</tr>
 		<tr>
-			<td><img src="doc/screenshots/Screenshot2.png" alt="Speech saving"></td>
-			<td><img src="doc/screenshots/Screenshot3.png" alt="Generating topic"></td>
+			<td><img src="doc/screenshots/screenshot0003.png" alt="Whiteboard canvas demo"></td>
+			<td><img src="doc/screenshots/screenshot0004.png" alt="Whiteboard color picker demo"></td>
+		</tr>
+		<tr>
+			<td><img src="doc/screenshots/screenshot0005.png" alt="Line from the whiteboard topic"></td>
 		</tr>
 	</table>
-</details> -->
+</details>
 
 ## ❓ Installing
 
