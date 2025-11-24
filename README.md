@@ -57,6 +57,11 @@
 3. Drag and drop `Submods` folder from it into your `game` folder.
 4. You're all set!~
 
+## 🤔 How do I open the whiteboard?
+
+You can easily find the topic by clicking on 'Hey, Monika...' button in the 'Talk' menu
+and searching for 'Whiteboard'!
+
 ## 🏅 Special thanks
 
 We thank the following people for helping this submod get released!
