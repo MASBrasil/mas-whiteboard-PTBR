@@ -24,9 +24,10 @@
 
 ## 🌟 Features
 
-* A simple whiteboard you can draw something on
-* Comes with a marker (7 colors!) tool and a whiteboard wipe
-* Use mouse wheel to increase/decrease pen size
+* A simple whiteboard you can draw something on!
+* Comes with a marker tool, fill tool and a whiteboard wipe
+* ...and with a *real* color palette picker!
+* Use mouse wheel to increase/decrease marker/wipe size
 * Whiteboard contents can be easily saved in one click
 
 ## 🖼️ Screenshots
