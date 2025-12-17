@@ -60,7 +60,7 @@
 ## 🤔 Como abrir o quadro branco?
 
 Você pode encontrar o tópico facilmente clicando no botão “Ei, Monika...” no menu “Conversar”
-e procurando por “Quadra Branco”!
+e procurando por “Poderia pegar o quadro branco?”!
 
 ## 🏅 Agradecimentos especiais
 
